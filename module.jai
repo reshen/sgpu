@@ -306,6 +306,7 @@ Stage :: enum {
     TRANSFER                :: 0x00001000;
     BOTTOM_OF_PIPE          :: 0x00002000;
     HOST                    :: 0x00004000;
+    COPY                    :: 4294967296;
     ALL                     :: 0x00010000;
 }
 

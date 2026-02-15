@@ -128,6 +128,53 @@ gpu_copy_to_texture :: (cmd: Gpu_Command_Buffer, dest: Gpu_Texture, src: Gpu_Ptr
     return .SUCCESS;
 }
 
+gpu_copy_to_texture :: (cmd: Gpu_Command_Buffer, dest_view_handle: Gpu_Texture_View, src_view_handle: Gpu_Texture_View) -> Gpu_Result {
+    dest_view := get_texture_view(dest_view_handle);
+    src_view := get_texture_view(src_view_handle);
+
+    if !dest_view || !src_view then return .ERROR_INVALID_TEXTURE_VIEW;
+
+    return gpu_copy_to_texture(cmd, dest_view.texture, src_view.texture);
+}
+
+gpu_copy_to_texture :: (cmd: Gpu_Command_Buffer, dest: Gpu_Texture, src: Gpu_Texture) -> Gpu_Result {
+    dest_texture := get_texture(dest);
+    src_texture := get_texture(src);
+    if !dest_texture || !src_texture then return .ERROR_INVALID_TEXTURE;
+    vk_cmd_buff := get_cmd_buff(cmd);
+    region := VkImageCopy2.{
+        srcSubresource = .{
+            aspectMask = get_image_aspect_mask(src_texture.desc.format),
+            mipLevel = 0,
+            baseArrayLayer = 0,
+            layerCount = 1, // #todo: pass layers in
+        },
+        dstSubresource = .{
+            aspectMask = get_image_aspect_mask(dest_texture.desc.format),
+            mipLevel = 0,
+            baseArrayLayer = 0,
+            layerCount = 1, // #todo: pass layers in
+        },
+        srcOffset = .{ x = 0, y = 0, z = 0 },
+        dstOffset = .{ x = 0, y = 0, z = 0 },
+        extent = .{
+            width = src_texture.desc.dimensions[0],
+            height = src_texture.desc.dimensions[1],
+            depth = src_texture.desc.dimensions[2],
+        },
+    };
+    copy := VkCopyImageInfo2.{
+        srcImage = src_texture.vk_image,
+        srcImageLayout = .GENERAL,
+        dstImage = dest_texture.vk_image,
+        dstImageLayout = .GENERAL,
+        regionCount = 1,
+        pRegions = *region,
+    };
+    vkCmdCopyImage2(vk_cmd_buff, *copy);
+    return .SUCCESS;
+}
+
 gpu_clear_texture :: (cmd: Gpu_Command_Buffer, view_handle: Gpu_Texture_View, clear_color: Gpu_Color_Value) -> Gpu_Result {
     view := get_texture_view(view_handle);
     if !view then return .ERROR_INVALID_TEXTURE_VIEW;
@@ -166,7 +213,7 @@ gpu_barrier :: (cmd: Gpu_Command_Buffer, before: Stage, after: Stage) {
         srcStageMask = before.(VkPipelineStageFlags2),
         dstStageMask = after.(VkPipelineStageFlags2),
         srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
-        dstAccessMask = VK_ACCESS_2_MEMORY_READ_BIT,
+        dstAccessMask = VK_ACCESS_2_MEMORY_READ_BIT | VK_ACCESS_2_MEMORY_WRITE_BIT,
     };
 
     dep_info := VkDependencyInfo.{
