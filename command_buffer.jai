@@ -444,14 +444,14 @@ gpu_enqueue_destroy :: (cmd: Gpu_Command_Buffer, gpu_ptr: Gpu_Ptr) {
     pool := get_pool(cmd);
     queue := get_queue(pool.queue);
     garbage_list := *garbage_allocations[queue.global_index];
-    array_add(garbage_list, .{queue.timeline_value, gpu_ptr});
+    array_add(garbage_list, .{queue.timeline_value, gpu_ptr},, cpu_allocator);
 }
 
 gpu_enqueue_destroy :: (cmd: Gpu_Command_Buffer, texture: Gpu_Texture) {
     pool := get_pool(cmd);
     queue := get_queue(pool.queue);
     garbage_list := *garbage_textures[queue.global_index];
-    array_add(garbage_list, .{queue.timeline_value, texture});
+    array_add(garbage_list, .{queue.timeline_value, texture},, cpu_allocator);
 }
 
 #scope_module
