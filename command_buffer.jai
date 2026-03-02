@@ -244,7 +244,7 @@ gpu_set_depth_stencil_state :: (cmd: Gpu_Command_Buffer, desc: Gpu_Depth_Stencil
         vkCmdSetDepthTestEnable(vk_cmd_buff, VK_TRUE);
         vkCmdSetDepthCompareOp(vk_cmd_buff, desc.depth_test.(VkCompareOp));
 
-		if desc.depth_bas != 0 || desc.depth_bias_slope_factor != 0 {
+		if desc.depth_bias != 0 || desc.depth_bias_slope_factor != 0 {
 			vkCmdSetDepthBiasEnable(vk_cmd_buff, VK_TRUE); 
 			vkCmdSetDepthBias(vk_cmd_buff, desc.depth_bias, desc.depth_bias_clamp, desc.depth_bias_slope_factor);
 		}

@@ -5,7 +5,7 @@ create_native_window :: (width: int, height: int, name: string) -> u64 {
     #if OS == .MACOS {
         return create_window_metal(width, height, name).(u64);
     } else {
-        return create_window(width, height, name);
+        return create_window(width, height, name).(u64);
     }
 }
 
