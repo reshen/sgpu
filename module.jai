@@ -545,7 +545,7 @@ Gpu_Render_Pass_Desc :: struct {
 
 // ----------------------------- Global ------------------------------------
 
-gpu_init :: (optional_features: Gpu_Optional_Features = .DESCRIPTOR_BUFFER) -> Gpu_Result {
+gpu_init :: (optional_features: Gpu_Optional_Features = .DESCRIPTOR_BUFFER, log_level: Gpu_Log_Severity = .WARNING_BIT_EXT | .ERROR_BIT_EXT) -> Gpu_Result {
     remember_allocator();
     requested_optional_features = optional_features;
 
@@ -553,7 +553,7 @@ gpu_init :: (optional_features: Gpu_Optional_Features = .DESCRIPTOR_BUFFER) -> G
         gpu_capture_init();
     }
 
-    result := create_instance();
+    result := create_instance(log_level);
     return_if_error(result);
     result = create_device();
     return_if_error(result);
@@ -698,7 +698,7 @@ enable_feature :: inline (flags: Gpu_Optional_Features, bit: Gpu_Optional_Featur
     return ifx (flags & bit) == bit then VK_TRUE else VK_FALSE;
 }
 
-create_instance :: () -> Gpu_Result {
+create_instance :: (log_level: VkDebugUtilsMessageSeverityFlagsEXT) -> Gpu_Result {
     auto_release_temp();
     push_allocator(temp);
 
@@ -722,7 +722,7 @@ create_instance :: () -> Gpu_Result {
         array_add(*enabled_extensions, VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
         array_add(*enabled_extensions, VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }
-	#if DEBUG_MARKERS {
+    #if DEBUG_MARKERS {
         array_add(*enabled_extensions, VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }
 
@@ -755,12 +755,23 @@ create_instance :: () -> Gpu_Result {
     create_info.enabledExtensionCount = enabled_extensions.count.(u32);
     create_info.ppEnabledExtensionNames = enabled_extensions.data;
     #if VALIDATION {
-        create_info.enabledLayerCount = 1;
-        create_info.ppEnabledLayerNames = (*u8).["VK_LAYER_KHRONOS_validation"].data;
+        layers := #ifx OS == .WINDOWS || OS == .LINUX {
+            // The VK_LAYER_LUNARG_monitor utility layer displays the real-time frame rate in frames-per-second in the
+            // application's title bar. It is only compatible with the Win32 and XCB windowing systems and will not
+            // display the frame rate on other platforms.
+            (*u8).["VK_LAYER_KHRONOS_validation", "VK_LAYER_LUNARG_monitor"]; }
+        else {
+            (*u8).["VK_LAYER_KHRONOS_validation"];
+        }
+        create_info.enabledLayerCount = xx layers.count;
+        create_info.ppEnabledLayerNames = xx layers.data;
+
 
         enabled_validation_features := VkValidationFeatureEnableEXT.[
-            //.GPU_ASSISTED_EXT,
-            //.GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT,
+            // ref https://docs.vulkan.org/spec/latest/chapters/initialization.html#VkValidationFeatureEnableEXT
+            .GPU_ASSISTED_EXT,
+            .GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT,
+            .DEBUG_PRINTF_EXT,
             .SYNCHRONIZATION_VALIDATION_EXT,
         ];
 
@@ -770,10 +781,10 @@ create_instance :: () -> Gpu_Result {
         };
 
         debug_messenger_create_info := VkDebugUtilsMessengerCreateInfoEXT.{
-            messageSeverity = .WARNING_BIT_EXT | .ERROR_BIT_EXT,
+            messageSeverity = log_level,
             messageType = .GENERAL_BIT_EXT | .VALIDATION_BIT_EXT | .PERFORMANCE_BIT_EXT,
             pfnUserCallback = vk_debug_callback,
-            pUserData = null,
+            pUserData = *context,
             pNext = *validation_features,
         };
 
@@ -1402,14 +1413,21 @@ vkCmdDrawMeshTasksEXT: PFN_vkCmdDrawMeshTasksEXT;
     }
 
     vk_debug_callback :: (messageSeverity: VkDebugUtilsMessageSeverityFlagBitsEXT, messageTypes: VkDebugUtilsMessageTypeFlagsEXT, pCallbackData: *VkDebugUtilsMessengerCallbackDataEXT, pUserData: *void) -> VkBool32 #c_call {
-        new_context: #Context;
-        push_context new_context {
+        ctx := cast(*#Context) pUserData;
+        push_context ctx {
+            flags: Log_Flags;
             if messageSeverity == {
+                // NOTE: These will only output if the corresponding severity is enabled in
+                // `debug_messenger_create_info`'s `messageSeverity` field
+                case .VERBOSE_BIT_EXT;
+                    flags = Log_Flags.VERBOSE_ONLY;
                 case .WARNING_BIT_EXT;
-                    log("Vulkan debug: %", to_string(pCallbackData.pMessage));
+                    flags = Log_Flags.WARNING;
                 case .ERROR_BIT_EXT;
-                    log("Vulkan debug: %", to_string(pCallbackData.pMessage));
+                    flags = Log_Flags.ERROR;
             }
+
+            log("%", to_string(pCallbackData.pMessage), flags = flags);
         }
 
         return VK_FALSE;
@@ -1452,3 +1470,6 @@ remember_allocator :: () {
 #import "Math";
 #import "Bucket_Array";
 #import "Atomics";
+
+#scope_export
+Gpu_Log_Severity :: VkDebugUtilsMessageSeverityFlagsEXT;
