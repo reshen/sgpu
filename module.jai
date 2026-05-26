@@ -767,16 +767,22 @@ create_instance :: (log_level: VkDebugUtilsMessageSeverityFlagsEXT) -> Gpu_Resul
         create_info.ppEnabledLayerNames = xx layers.data;
 
 
-        enabled_validation_features := VkValidationFeatureEnableEXT.[
-            // ref https://docs.vulkan.org/spec/latest/chapters/initialization.html#VkValidationFeatureEnableEXT
-            .GPU_ASSISTED_EXT,
-            .GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT,
-            .DEBUG_PRINTF_EXT,
-            .SYNCHRONIZATION_VALIDATION_EXT,
-        ];
+        // ref https://docs.vulkan.org/spec/latest/chapters/initialization.html#VkValidationFeatureEnableEXT
+        enabled_validation_features: [..]VkValidationFeatureEnableEXT;
+        array_add(*enabled_validation_features, .DEBUG_PRINTF_EXT);
+        array_add(*enabled_validation_features, .SYNCHRONIZATION_VALIDATION_EXT);
+
+        #if OS != .MACOS { 
+            // As of 2026/05, GPU Assisted Validation (GPU-AV) does not work on Mac and causes serious problems if
+            // attempted anyway, see:
+            //   https://github.com/KhronosGroup/MoltenVK/issues/2492
+            //   https://github.com/KhronosGroup/Vulkan-ValidationLayers/issues/7512
+            array_add(*enabled_validation_features, .GPU_ASSISTED_EXT);
+            array_add(*enabled_validation_features, .GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT);
+        }
 
         validation_features := VkValidationFeaturesEXT.{
-            enabledValidationFeatureCount = enabled_validation_features.count,
+            enabledValidationFeatureCount = xx enabled_validation_features.count,
             pEnabledValidationFeatures  = enabled_validation_features.data,
         };
 
