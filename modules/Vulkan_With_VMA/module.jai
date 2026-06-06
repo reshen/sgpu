@@ -28,11 +28,11 @@ available on windows.
 //  detail I don't know anything about. if that is true, the program that takes this route is both less portable and
 //  more resilient.
 
- // - #import this with USE_VULKAN_1_1 == false if your driver doesn't have those routines.
- // - if MEMORY_ALLOCATOR_DEBUG is true, then VkMemAlloc_DEBUG.lib will be linked instead of VkMemAlloc.lib. the debug
- //     symbols were created alongside VkMemAlloc_DEBUG + it has debug asserts and logging.
- // - if USE_LOCAL_VULKAN_DYNAMIC_LIB is true, then the local vulkan-1.dll will be used. otherwise, your program
- //     will depend on the system's vulkan-1.dll.
+// - #import this with USE_VULKAN_1_1 == false if your driver doesn't have those routines.
+// - if MEMORY_ALLOCATOR_DEBUG is true, then VkMemAlloc_DEBUG.lib will be linked instead of VkMemAlloc.lib. the debug
+//     symbols were created alongside VkMemAlloc_DEBUG + it has debug asserts and logging.
+// - if USE_LOCAL_VULKAN_DYNAMIC_LIB is true, then the local vulkan-1.dll will be used. otherwise, your program
+//     will depend on the system's vulkan-1.dll.
 #module_parameters(MEMORY_ALLOCATOR_DEBUG := false, USE_LOCAL_VULKAN_DYNAMIC_LIB := true);
 
 
@@ -85,7 +85,7 @@ VK_API_VERSION_PATCH   :: (version: u32) -> u32 { return version & 0xfff; }
     vkCreateWin32SurfaceKHR :: (instance: VkInstance, pCreateInfo: *VkWin32SurfaceCreateInfoKHR, pAllocator: *VkAllocationCallbacks, pSurface: *VkSurfaceKHR) -> VkResult #foreign libvulkan;
     vkGetPhysicalDeviceWin32PresentationSupportKHR :: (physicalDevice: VkPhysicalDevice, queueFamilyIndex: u32) -> VkBool32 #foreign libvulkan;
 
-#scope_module // -------------------------------------------------------------------------------------------- { MODULE }
+    #scope_module // -------------------------------------------------------------------------------------------- { MODULE }
 
     #if USE_LOCAL_VULKAN_DYNAMIC_LIB {
         libvulkan :: #library "libs/win/vulkan-1";
@@ -95,7 +95,7 @@ VK_API_VERSION_PATCH   :: (version: u32) -> u32 { return version & 0xfff; }
 
     libcpmt :: #library,system,link_always "libcpmt";
 
-#scope_export // -------------------------------------------------------------------------------------------- { EXPORT }
+    #scope_export // -------------------------------------------------------------------------------------------- { EXPORT }
 
     #if MEMORY_ALLOCATOR_DEBUG {
         vkmemalloc :: #library,no_dll "win/VkMemAlloc_DEBUG";

@@ -62,6 +62,7 @@ gpu_malloc :: (size: s64, memory_type: Memory_Type = .DEFAULT) -> (mapped: *void
     result: Alloc_Info;
     vk_result := vmaCreateBuffer(vma, *buffer_create_info, *alloc_create_info, *result.vk_buffer, *result.allocation, *alloc_info);
     if vk_result != .SUCCESS {
+        assert(false, "vmaCreateBuffer failed");
         return null, 0;
     }
 
@@ -69,6 +70,7 @@ gpu_malloc :: (size: s64, memory_type: Memory_Type = .DEFAULT) -> (mapped: *void
     result.gpu_ptr = cast(Gpu_Ptr) vkGetBufferDeviceAddress(vk_device, *addr_info);
     if result.gpu_ptr == 0 {
         vmaDestroyBuffer(vma, result.vk_buffer, result.allocation);
+        assert(result.gpu_ptr != 0, "vkGetBufferDeviceAddress failed");
         return null, 0;
     }
 
@@ -81,6 +83,8 @@ gpu_malloc :: (size: s64, memory_type: Memory_Type = .DEFAULT) -> (mapped: *void
     table_add(*gpu_allocations, result.gpu_ptr, result);
 
     array_add(*gpu_memory_ranges, .{start = result.gpu_ptr, end = result.gpu_ptr + size.(Gpu_Ptr)});
+    assert(mapped != null, "gpu_malloc failed, unable to allocate % bytes from memory type %", size, memory_type);
+    assert(result.gpu_ptr != 0, "gpu_malloc failed, gpu_ptr is zero");
 
     return mapped, result.gpu_ptr;
 }

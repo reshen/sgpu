@@ -1469,7 +1469,7 @@ remember_allocator :: () {
     swapchain_views.allocator = cpu_allocator;
 }
 
-#import,file "modules/Vulkan_With_VMA/module.jai";
+#import,file "modules/Vulkan_With_VMA/module.jai"(MEMORY_ALLOCATOR_DEBUG = true);
 
 #import "Basic";
 #import "String";
