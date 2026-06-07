@@ -566,6 +566,7 @@ gpu_init :: (optional_features: Gpu_Optional_Features = .DESCRIPTOR_BUFFER, log_
     init(*memory_mutex, "Memory Mutex");
     init(*live_pools_lock, "Live Command Pools Lock");
     init(*garbage_resources_lock, "Garbage Resources Lock");
+    init(*textures_mutex, "Create textures mutex");
     for * cmd_pool_locks {
         init(it, "Command Pool Arena Lock");
     }

@@ -1,6 +1,13 @@
 #scope_export
 
 gpu_create_texture :: (desc: Gpu_Texture_Desc, optional_signal_texture_ready: [] Gpu_Timeline_Pair = .[], label: string = "") -> Gpu_Result, Gpu_Texture {
+    // temp hack to protect against concurrent usage of gpu_get_queue below: "You can only submit work to a VkQueue from
+    // one thread at a time, but different threads can submit work to a different VkQueue simultaneously." -
+    // https://docs.vulkan.org/guide/latest/queues.html
+    // this API probably needs to let the user declare waht queue to use?
+    lock(*textures_mutex);
+    defer unlock(*textures_mutex);
+
     create_flags: VkImageCreateFlags = 0;
     if desc.type == .CUBE || desc.type == .CUBE_ARRAY {
         create_flags |= .CUBE_COMPATIBLE_BIT;
@@ -315,3 +322,5 @@ get_texture_view :: (view_handle: Gpu_Texture_View) -> *Texture_View {
     view := pool_get(live_views, view_handle);
     return view;
 }
+
+textures_mutex: Mutex;
