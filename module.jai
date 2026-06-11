@@ -1370,10 +1370,6 @@ get_queue :: (queue_handle: Gpu_Queue) -> *Queue {
     return *queues[queue_index];
 }
 
-MAX_BUFFERS  :: 10000;
-MAX_IMAGES   :: 10000;
-MAX_SAMPLERS :: 1000;
-
 MAX_COMPUTE_QUEUES  :: 4;
 MAX_TRANSFER_QUEUES :: 2;
 
@@ -1480,3 +1476,7 @@ remember_allocator :: () {
 
 #scope_export
 Gpu_Log_Severity :: VkDebugUtilsMessageSeverityFlagsEXT;
+
+MAX_BUFFERS  :: 10000;
+MAX_IMAGES   :: 10000;
+MAX_SAMPLERS :: 1000;
