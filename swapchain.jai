@@ -57,7 +57,7 @@ gpu_init_swapchain :: (native_window: u64, window_type: Native_Window_Type, pref
 }
 
 gpu_swapchain_resize :: () {
-    vkQueueWaitIdle(get_queue(gpu_get_queue(.MAIN, 0)).vk_queue);
+    gpu_queue_wait_idle(gpu_get_queue(.MAIN, 0));
     recreate_swapchain();
 
     // recreate_swapchain bypasses semaphore creation/destruction, yet it may adjust
