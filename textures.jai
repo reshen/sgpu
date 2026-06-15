@@ -1,15 +1,9 @@
 #scope_export
 
-// caller must provide a transfer_queue_index, each queue can only be used by a single
-// thread at a time, and it's the caller's responsibility to synchronize access
-gpu_create_texture :: (desc: Gpu_Texture_Desc, transfer_queue_index: u32, optional_signal_texture_ready: [] Gpu_Timeline_Pair = .[], label: string = "") -> Gpu_Result, Gpu_Texture {
-    // temp hack to protect against concurrent usage of gpu_get_queue below: "You can only submit work to a VkQueue from
-    // one thread at a time, but different threads can submit work to a different VkQueue simultaneously." -
-    // https://docs.vulkan.org/guide/latest/queues.html
-    // this API probably needs to let the user declare waht queue to use?
-    lock(*textures_mutex);
-    defer unlock(*textures_mutex);
-
+// caller must provide a transfer_queue and ensure this function has exclusive
+// usage of it (synchronize against multithreaded use), see make_queue_threadsafe()
+// to make this easy
+gpu_create_texture :: (desc: Gpu_Texture_Desc, transfer_queue: Gpu_Queue, optional_signal_texture_ready: [] Gpu_Timeline_Pair = .[], label: string = "") -> Gpu_Result, Gpu_Texture {
     create_flags: VkImageCreateFlags = 0;
     if desc.type == .CUBE || desc.type == .CUBE_ARRAY {
         create_flags |= .CUBE_COMPATIBLE_BIT;
@@ -48,7 +42,6 @@ gpu_create_texture :: (desc: Gpu_Texture_Desc, transfer_queue_index: u32, option
 
     #if DEBUG_MARKERS then set_object_debug_name(.IMAGE, cast(u64) image, label);
 
-    transfer_queue := gpu_get_queue(.TRANSFER, transfer_queue_index);
     result, cmd_buff := gpu_start_command_recording(transfer_queue);
     return_if_error(result, 0);
 

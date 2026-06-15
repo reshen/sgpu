@@ -1242,6 +1242,8 @@ create_device :: () -> Gpu_Result {
 
             result = vkCreateSemaphore(vk_device, *create_info, null, *it.timeline);
             return_if_error(result);
+
+            init(*it.mutex, tprint("vkQueue mutex type %, index %", it.type, it.index_in_type));
         }
     }
 
@@ -1341,6 +1343,9 @@ Queue :: struct {
 
     timeline: VkSemaphore;
     timeline_value: u64;
+
+    // All per-queue access must be syncrhonized
+    mutex: Mutex;
 }
 
 queues := Queue.[
@@ -1480,3 +1485,11 @@ Gpu_Log_Severity :: VkDebugUtilsMessageSeverityFlagsEXT;
 MAX_BUFFERS  :: 10000;
 MAX_IMAGES   :: 10000;
 MAX_SAMPLERS :: 1000;
+
+// For all vkQueue usage, it's the caller's responsibility to ensure thread safety,
+// this helper makes that much easier
+make_queue_threadsafe :: (queue_handle: Gpu_Queue) #expand {
+    q := get_queue(queue_handle);
+    `lock(*q.mutex);
+    `defer unlock(*q.mutex);
+}

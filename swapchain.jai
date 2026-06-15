@@ -57,7 +57,9 @@ gpu_init_swapchain :: (native_window: u64, window_type: Native_Window_Type, pref
 }
 
 gpu_swapchain_resize :: () {
-    gpu_queue_wait_idle(gpu_get_queue(.MAIN, 0));
+    queue_handle := gpu_get_queue(.MAIN, 0);
+    make_queue_threadsafe(queue_handle);
+    gpu_queue_wait_idle(queue_handle);
     recreate_swapchain();
 
     // recreate_swapchain bypasses semaphore creation/destruction, yet it may adjust
@@ -113,6 +115,7 @@ gpu_swapchain_acquire :: () -> Gpu_Result, Gpu_Texture_View {
         cpu_frame_timeline += 1;
 
         queue_handle := gpu_get_queue(.MAIN, 0);
+        make_queue_threadsafe(queue_handle);
         result, cmd_buff := gpu_start_command_recording(queue_handle);
         if result != .SUCCESS {
             cpu_frame_timeline -= 1;
@@ -148,7 +151,10 @@ gpu_present :: () {
         pImageIndices = *current_swapchain_index,
     };
 
-    vk_result := vkQueuePresentKHR(get_queue(gpu_get_queue(.MAIN, 0)).vk_queue, *present_info);
+
+    queue_handle := gpu_get_queue(.MAIN, 0);
+    make_queue_threadsafe(queue_handle);
+    vk_result := vkQueuePresentKHR(get_queue(queue_handle).vk_queue, *present_info);
     // resizes are handled during swapchain image acquisition so ignore these error codes here.
     assert(vk_result == .SUCCESS || vk_result == .SUBOPTIMAL_KHR || vk_result == .ERROR_OUT_OF_DATE_KHR);
 }
@@ -275,6 +281,8 @@ recreate_swapchain :: () {
 
     min_image_count = clamp(min_image_count, surface_capabilities.minImageCount, surface_capabilities.maxImageCount);
 
+    queue_handle := gpu_get_queue(.MAIN, 0);
+    make_queue_threadsafe(queue_handle);
     create_info := VkSwapchainCreateInfoKHR.{
         surface = vk_surface,
         imageFormat = swapchain_format.format,
@@ -285,7 +293,7 @@ recreate_swapchain :: () {
         imageUsage = .COLOR_ATTACHMENT_BIT | .TRANSFER_DST_BIT | .STORAGE_BIT,
         minImageCount = min_image_count,
         queueFamilyIndexCount = 1,
-        pQueueFamilyIndices = *get_queue(gpu_get_queue(.MAIN, 0)).vk_family,
+        pQueueFamilyIndices = *get_queue(queue_handle).vk_family,
         preTransform = .IDENTITY_BIT_KHR,
         compositeAlpha = .OPAQUE_BIT_KHR,
         presentMode = swapchain_present_mode,
