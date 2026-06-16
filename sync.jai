@@ -64,4 +64,5 @@ get_semaphore :: (semaphore_handle: Gpu_Semaphore) -> *Semaphore {
     return semaphore;
 }
 
-live_semaphores: Pool(Gpu_Semaphore, Semaphore);
+MAX_SEMAPHORES :: 128;
+live_semaphores: Pool(Gpu_Semaphore, Semaphore, MAX_SEMAPHORES);

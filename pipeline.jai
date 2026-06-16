@@ -73,6 +73,7 @@ Shader_Stage :: enum {
 }
 
 NUM_SHADER_STAGES :: #run enum_values_as_enum(Shader_Stage).count;
+MAX_PIPELINES :: 128;
 
 Pipeline :: struct {
     type: Pipeline_Type;
@@ -82,7 +83,7 @@ Pipeline :: struct {
 
 // we always use the same push constant block size and same descriptor sets so there is no need to have multiple pipeline layouts.
 vk_pipeline_layout: VkPipelineLayout;
-live_pipelines: Pool(Gpu_Pipeline, Pipeline);
+live_pipelines: Pool(Gpu_Pipeline, Pipeline, MAX_PIPELINES);
 
 create_global_pipeline_layout :: ()  -> Gpu_Result {
     push_const_ranges: [NUM_SHADER_STAGES] VkPushConstantRange;
