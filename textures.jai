@@ -302,19 +302,24 @@ get_image_aspect_mask :: (format: Format) -> VkImageAspectFlags {
 }
 
 cleanup_texture_view :: (view_handle: Gpu_Texture_View) {
+    assert(view_handle != 0);
     removed, view := pool_remove(*live_views, view_handle);
     if removed {
         vkDestroyImageView(vk_device, view.vk_view, null);
     }
 }
 
-get_texture :: (texture_handle: Gpu_Texture) -> *Texture{
+get_texture :: (texture_handle: Gpu_Texture) -> *Texture {
+    assert(texture_handle != 0);
     texture := pool_get(live_textures, texture_handle);
+    assert(texture != null);
     return texture;
 }
 
 get_texture_view :: (view_handle: Gpu_Texture_View) -> *Texture_View {
+    assert(view_handle != 0);
     view := pool_get(live_views, view_handle);
+    assert(view != null);
     return view;
 }
 
