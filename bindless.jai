@@ -122,10 +122,6 @@ write_sampler_descriptor :: (vk_sampler: VkSampler, index: Gpu_Sampler) {
 
         vkGetDescriptorEXT(vk_device, *get_info, sampler_descriptor_size, element_ptr);
     } else {
-        #if OS == .MACOS {
-            assert(false, "reshen@: VK_EXT_descriptor_buffer not yet supported in MoltenVK - https://github.com/KhronosGroup/MoltenVK/issues/1776");
-        }
-
         image_info := VkDescriptorImageInfo.{
             sampler = vk_sampler,
             imageLayout = .GENERAL,
