@@ -1,6 +1,15 @@
 #module_parameters(
-    // Optionally enables Vulkan validation layers.
+    // Optionally enables Vulkan core validation layers.
     VALIDATION := false,
+    // Optionally enables Vulkan gpu assisted validation layers.
+    // Both GPU Assisted Validation and Normal Core Check Validation are enabled, 
+    // this is not recommend as it  will be very slow. Once all errors in Core
+    // Check are solved, please disable, then only use GPU-AV for best performance.
+    // NOTE: This flag has no effect on macos, since gpu av doesn't work there at all,
+    // pending:
+    //   https://github.com/KhronosGroup/MoltenVK/issues/2492
+    //   https://github.com/KhronosGroup/Vulkan-ValidationLayers/issues/7512
+    SGPU_ASSISTED_VALIDATION := false,
     // Optionally enables debug assertions within the sgpu module
     DEBUG_ASSERTS := false,
     // Optionally includes an api for taking render doc captures
@@ -773,7 +782,7 @@ create_instance :: (log_level: VkDebugUtilsMessageSeverityFlagsEXT) -> Gpu_Resul
         array_add(*enabled_validation_features, .DEBUG_PRINTF_EXT);
         array_add(*enabled_validation_features, .SYNCHRONIZATION_VALIDATION_EXT);
 
-        #if OS != .MACOS { 
+        #if OS != .MACOS && SGPU_ASSISTED_VALIDATION { 
             // As of 2026/05, GPU Assisted Validation (GPU-AV) does not work on Mac and causes serious problems if
             // attempted anyway, see:
             //   https://github.com/KhronosGroup/MoltenVK/issues/2492
