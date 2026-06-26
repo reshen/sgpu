@@ -656,7 +656,7 @@ gpu_get_queue :: (queue_type: Gpu_Queue_Type, queue_index: u32) -> Gpu_Queue {
 #scope_module
 
 assert_vk_result :: (result: VkResult) {
-    assert(result == VkResult.SUCCESS);
+    assert(result == VkResult.SUCCESS, "Vulkan result was an error: %", result);
 }
 
 // #todo: all these return_if_errors need to be cleaned up.
