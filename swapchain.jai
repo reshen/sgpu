@@ -103,7 +103,7 @@ gpu_destroy_swapchain :: () {
     preferred_min_image_count = 0;
 }
 
-gpu_swapchain_acquire :: () -> Gpu_Result, Gpu_Texture_View {
+gpu_swapchain_acquire :: () -> Gpu_Result, Gpu_Texture, Gpu_Texture_View {
     wait_next_frame();
 
     acquire_semaphore_index = (cpu_frame_timeline + 1) % acquire_semaphores.count.(u64);
@@ -119,7 +119,7 @@ gpu_swapchain_acquire :: () -> Gpu_Result, Gpu_Texture_View {
         result, cmd_buff := gpu_start_command_recording(queue_handle);
         if result != .SUCCESS {
             cpu_frame_timeline -= 1;
-            return result, 0;
+            return result, 0, 0;
         }
 
         timestamps_reset(cmd_buff);
@@ -131,12 +131,12 @@ gpu_swapchain_acquire :: () -> Gpu_Result, Gpu_Texture_View {
             wait_semaphores = .[acquire_semaphore],
         });
 
-        return .SUCCESS, swapchain_views[current_swapchain_index];
+        return .SUCCESS, swapchain_textures[current_swapchain_index], swapchain_views[current_swapchain_index];
     }
 
     // #todo: this is not actually a success. acquire next image can return out of date and suboptimal which we
     // return as succeses but with invalid texture handles. This needs to be updated
-    return .SUCCESS, 0;
+    return .SUCCESS, 0, 0;
 }
 
 gpu_present :: () {
@@ -157,6 +157,37 @@ gpu_present :: () {
     vk_result := vkQueuePresentKHR(get_queue(queue_handle).vk_queue, *present_info);
     // resizes are handled during swapchain image acquisition so ignore these error codes here.
     assert(vk_result == .SUCCESS || vk_result == .SUBOPTIMAL_KHR || vk_result == .ERROR_OUT_OF_DATE_KHR);
+}
+
+gpu_image_barrier_blit_color_attachment :: (cmd_buff: Gpu_Command_Buffer, gpu_texture: Gpu_Texture) {
+    src_texture := get_texture(gpu_texture);
+
+    vk_cmd_buff := get_cmd_buff(cmd_buff);
+
+    image_barrier := VkImageMemoryBarrier2.{
+        image = src_texture.vk_image,
+        // Conservatively barrier on color attachment writes and transfer writes.
+        srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+        srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT_KHR,
+        dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+        dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT_KHR | VK_ACCESS_2_TRANSFER_READ_BIT,
+        subresourceRange = .{
+            baseMipLevel = 0,
+            baseArrayLayer = 0,
+            levelCount = 1,
+            layerCount = 1,
+            aspectMask = get_image_aspect_mask(swapchain_format.format.(Format)),
+        },
+        oldLayout = VkImageLayout.GENERAL,
+        newLayout = VkImageLayout.GENERAL,
+    };
+
+    dep_info := VkDependencyInfo.{
+        imageMemoryBarrierCount = 1,
+        pImageMemoryBarriers = *image_barrier,
+    };
+
+    vkCmdPipelineBarrier2(vk_cmd_buff, *dep_info);
 }
 
 gpu_submit_and_present :: (cmd_buff: Gpu_Command_Buffer, signals: [] Gpu_Timeline_Pair = .[], waits: [] Gpu_Timeline_Pair = .[]) {

@@ -316,10 +316,10 @@ gpu_set_depth_stencil_state :: (cmd: Gpu_Command_Buffer, desc: Gpu_Depth_Stencil
         vkCmdSetDepthTestEnable(vk_cmd_buff, VK_TRUE);
         vkCmdSetDepthCompareOp(vk_cmd_buff, desc.depth_test.(VkCompareOp));
 
-		if desc.depth_bias != 0 || desc.depth_bias_slope_factor != 0 {
-			vkCmdSetDepthBiasEnable(vk_cmd_buff, VK_TRUE); 
-			vkCmdSetDepthBias(vk_cmd_buff, desc.depth_bias, desc.depth_bias_clamp, desc.depth_bias_slope_factor);
-		}
+        if desc.depth_bias != 0 || desc.depth_bias_slope_factor != 0 {
+            vkCmdSetDepthBiasEnable(vk_cmd_buff, VK_TRUE); 
+            vkCmdSetDepthBias(vk_cmd_buff, desc.depth_bias, desc.depth_bias_clamp, desc.depth_bias_slope_factor);
+        }
     } else {
         vkCmdSetDepthTestEnable(vk_cmd_buff, VK_FALSE);
     }
@@ -399,7 +399,8 @@ gpu_indirect_dispatch :: (cmd: Gpu_Command_Buffer, data: Gpu_Ptr, dimensions_gpu
     return .SUCCESS;
 }
 
-gpu_begin_render_pass :: (cmd: Gpu_Command_Buffer, desc: Gpu_Render_Pass_Desc) -> Gpu_Result {
+gpu_begin_render_pass :: (cmd: Gpu_Command_Buffer, desc: Gpu_Render_Pass_Desc, label: string = "") -> Gpu_Result {
+    gpu_cmd_begin_debug_marker(cmd, label);
     vk_cmd_buff := get_cmd_buff(cmd);
 
     color_attachments: [MAX_ATTACHMENTS] VkRenderingAttachmentInfo;
@@ -490,6 +491,7 @@ gpu_begin_render_pass :: (cmd: Gpu_Command_Buffer, desc: Gpu_Render_Pass_Desc) -
 gpu_end_render_pass :: (cmd: Gpu_Command_Buffer) {
     vk_cmd_buff := get_cmd_buff(cmd);
     vkCmdEndRendering(vk_cmd_buff);
+    gpu_cmd_end_debug_marker(cmd);
 }
 
 gpu_draw_instanced :: (cmd: Gpu_Command_Buffer, vertex_data: Gpu_Ptr, pixel_data: Gpu_Ptr, vertex_count: u32, instance_count: u32) {
