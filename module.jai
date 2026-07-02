@@ -1,4 +1,4 @@
-#module_parameters(
+#module_parameters () (
     // Optionally enables Vulkan core validation layers.
     VALIDATION := false,
     // Optionally enables Vulkan gpu assisted validation layers.
