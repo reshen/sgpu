@@ -1512,3 +1512,35 @@ make_queue_threadsafe :: (queue_handle: Gpu_Queue) #expand {
     `lock(*q.mutex);
     `defer unlock(*q.mutex);
 }
+
+// NOTE: The caller owns and therefore must free the returned dynamic array, else it'll leak
+get_supported_depth_formats :: () -> [..] Format {
+    formats_to_query := VkFormat.[
+        // For reading from a depth image only VK_FORMAT_D16_UNORM and VK_FORMAT_D32_SFLOAT are required to support
+        // being read via sampling or blit operations.
+        .D16_UNORM,
+        .D32_SFLOAT,
+
+        // For writing to a depth image VK_FORMAT_D16_UNORM is required to be supported. From here at least one of
+        // (VK_FORMAT_X8_D24_UNORM_PACK32 or VK_FORMAT_D32_SFLOAT) and (VK_FORMAT_D24_UNORM_S8_UINT or
+        // VK_FORMAT_D32_SFLOAT_S8_UINT) must also be supported. This will involve some extra logic when trying to find
+        // which format to use if both the depth and stencil are needed in the same format.
+        .X8_D24_UNORM_PACK32,
+        .D24_UNORM_S8_UINT,
+        .D32_SFLOAT_S8_UINT,
+    ];
+
+    formats_supported: [..] Format;
+
+    using VkFormatFeatureFlagBits;
+
+    for formats_to_query {
+        properties: VkFormatProperties;
+        vkGetPhysicalDeviceFormatProperties(vk_physical_device, it, *properties);
+        if (properties.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) == VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT {
+            array_add(*formats_supported, xx it);
+        }
+    }
+
+    return formats_supported;
+}
