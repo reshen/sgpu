@@ -977,7 +977,7 @@ create_device :: () -> Gpu_Result {
 
             // primary queue should support all operations
             if queue_families[Gpu_Queue_Type.MAIN].vk_family == U32_MAX && supports_graphics && supports_compute && supports_transfer {
-                count: u32 = 1;
+                count := min(it.queueCount, MAX_MAIN_QUEUES);
                 queue_families[Gpu_Queue_Type.MAIN] = .{
                     vk_family = it_index.(u32),
                     count = count,
@@ -1359,6 +1359,7 @@ Queue :: struct {
 
 queues := Queue.[
     .{type = .MAIN,     index_in_type = 0},
+    .{type = .MAIN,     index_in_type = 1},
     .{type = .COMPUTE,  index_in_type = 0},
     .{type = .COMPUTE,  index_in_type = 1},
     .{type = .COMPUTE,  index_in_type = 2},
@@ -1384,6 +1385,7 @@ get_queue :: (queue_handle: Gpu_Queue) -> *Queue {
     return *queues[queue_index];
 }
 
+MAX_MAIN_QUEUES  :: 2;
 MAX_COMPUTE_QUEUES  :: 4;
 MAX_TRANSFER_QUEUES :: 2;
 
