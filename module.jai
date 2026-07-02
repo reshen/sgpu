@@ -1300,6 +1300,14 @@ create_device :: () -> Gpu_Result {
         }
     }
 
+    #if DEBUG_MARKERS {
+        // Now that the device has been successfully created, debug label resources
+        for queues {
+            set_object_debug_name(VkObjectType.QUEUE, cast(u64) it.vk_queue, tprint("queue type: %, index: %", it.type, it.index_in_type));
+            set_object_debug_name(VkObjectType.SEMAPHORE, cast(u64) it.timeline, tprint("queue timeline semaphore, type %, index %", it.type, it.index_in_type));
+        }
+    }
+
     return .SUCCESS;
 }
 

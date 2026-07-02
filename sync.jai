@@ -5,7 +5,7 @@ Gpu_Timeline_Pair :: struct {
     value: u64;
 }
 
-gpu_create_semaphore :: (initial: u64) -> Gpu_Semaphore {
+gpu_create_semaphore :: (initial: u64, label: string = "") -> Gpu_Semaphore {
     timeline_create_info := VkSemaphoreTypeCreateInfo.{
         semaphoreType = .TIMELINE,
         initialValue = initial,
@@ -19,6 +19,8 @@ gpu_create_semaphore :: (initial: u64) -> Gpu_Semaphore {
     if vk_result != .SUCCESS {
         return 0;
     }
+
+    #if DEBUG_MARKERS then set_object_debug_name(VkObjectType.SEMAPHORE, cast(u64) vk_semaphore, label);
 
     handle := pool_add(*live_semaphores, .{vk_semaphore});
     if handle == 0 {

@@ -52,7 +52,7 @@ gpu_init_swapchain :: (native_window: u64, window_type: Native_Window_Type, pref
 
     gpu_init_timestamps(swapchain_images.count);
 
-    gpu_frame_timeline = gpu_create_semaphore(0);
+    gpu_frame_timeline = gpu_create_semaphore(0, "gpu_frame_timeline");
     assert(gpu_frame_timeline != 0);
 }
 
