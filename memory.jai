@@ -10,20 +10,20 @@ Memory_Type :: enum {
     GPU_TO_CPU :: READBACK;
 }
 
-gpu_malloc :: ($type: Type, memory_type: Memory_Type = .DEFAULT) -> (mapped: *type, gpu: Gpu_Ptr) {
-    cpu_ptr, gpu_ptr := gpu_malloc(size_of(type), memory_type);
+gpu_malloc :: ($type: Type, memory_type: Memory_Type = .DEFAULT, label: string = "") -> (mapped: *type, gpu: Gpu_Ptr) {
+    cpu_ptr, gpu_ptr := gpu_malloc(size_of(type), memory_type, label);
     return cpu_ptr.(*type), gpu_ptr;
 }
 
-gpu_array_new :: (count: s64, $type: Type, memory_type: Memory_Type = .DEFAULT) -> (mapped: [] type, gpu: Gpu_Ptr) {
-    cpu_ptr, gpu_ptr := gpu_malloc(size_of(type) * count, memory_type);
+gpu_array_new :: (count: s64, $type: Type, memory_type: Memory_Type = .DEFAULT, label: string = "") -> (mapped: [] type, gpu: Gpu_Ptr) {
+    cpu_ptr, gpu_ptr := gpu_malloc(size_of(type) * count, memory_type, label);
     array: [] type;
     array.data = cpu_ptr;
     array.count = count;
     return array, gpu_ptr;
 }
 
-gpu_malloc :: (size: s64, memory_type: Memory_Type = .DEFAULT) -> (mapped: *void, gpu: Gpu_Ptr) {
+gpu_malloc :: (size: s64, memory_type: Memory_Type = .DEFAULT, label: string = "") -> (mapped: *void, gpu: Gpu_Ptr) {
     lock(*memory_mutex);
     defer unlock(*memory_mutex);
 
@@ -64,6 +64,11 @@ gpu_malloc :: (size: s64, memory_type: Memory_Type = .DEFAULT) -> (mapped: *void
     if vk_result != .SUCCESS {
         assert(false, "vmaCreateBuffer failed");
         return null, 0;
+    }
+
+    #if DEBUG_MARKERS {
+        set_object_debug_name(VkObjectType.DEVICE_MEMORY, cast(u64) alloc_info.deviceMemory, label);
+        set_object_debug_name(VkObjectType.BUFFER, cast(u64) result.vk_buffer, label);
     }
 
     addr_info := VkBufferDeviceAddressInfo.{buffer = result.vk_buffer };

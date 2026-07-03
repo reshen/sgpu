@@ -8,8 +8,8 @@ Gpu_Arena :: struct {
     head: s64;
 }
 
-gpu_make_arena :: (size: s64) -> Gpu_Arena {
-    cpu, gpu := gpu_malloc(size);
+gpu_make_arena :: (size: s64, label: string = "") -> Gpu_Arena {
+    cpu, gpu := gpu_malloc(size, label = label);
 
     return .{cpu = cpu, gpu = gpu, size = size};
 }
