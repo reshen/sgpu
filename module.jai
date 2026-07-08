@@ -1545,3 +1545,21 @@ get_supported_depth_formats :: () -> [..] Format {
 
     return formats_supported;
 }
+
+// cleanup dangerous semaphore with signal pending from vkAcquireNextImageKHR (tie it to a specific queue)
+// https://stackoverflow.com/a/70842563
+// https://github.com/KhronosGroup/Vulkan-Docs/issues/1059
+gpu_cleanup_unsafe_semaphore :: (queue: Gpu_Queue, semaphore: VkSemaphore) {
+    wait_dest_stage_mask := VkPipelineStageFlags.BOTTOM_OF_PIPE_BIT;
+
+    submit := VkSubmitInfo.{
+        waitSemaphoreCount = 1, 
+        pWaitSemaphores = *semaphore, // wait semaphores
+        pWaitDstStageMask = *wait_dest_stage_mask, // pipeline stages to wait for semaphore
+    };
+
+    q: *Queue = get_queue(queue);
+    result := vkQueueSubmit(q.vk_queue, 1 /*submit count*/, *submit, VK_NULL_HANDLE);
+    assert_vk_result(result);
+}
+

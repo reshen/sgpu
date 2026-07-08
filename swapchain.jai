@@ -106,6 +106,9 @@ gpu_destroy_swapchain :: () {
 gpu_swapchain_acquire :: () -> Gpu_Result, Gpu_Texture, Gpu_Texture_View {
     wait_next_frame();
 
+    queue_handle := gpu_get_queue(.MAIN, 0);
+    make_queue_threadsafe(queue_handle);
+
     acquire_semaphore_index = (cpu_frame_timeline + 1) % acquire_semaphores.count.(u64);
     acquire_semaphore := acquire_semaphores[acquire_semaphore_index];
     assert(acquire_semaphore != VK_NULL_HANDLE);
@@ -114,8 +117,6 @@ gpu_swapchain_acquire :: () -> Gpu_Result, Gpu_Texture, Gpu_Texture_View {
     if vk_result == .SUCCESS {
         cpu_frame_timeline += 1;
 
-        queue_handle := gpu_get_queue(.MAIN, 0);
-        make_queue_threadsafe(queue_handle);
         result, cmd_buff := gpu_start_command_recording(queue_handle);
         if result != .SUCCESS {
             cpu_frame_timeline -= 1;
@@ -132,6 +133,24 @@ gpu_swapchain_acquire :: () -> Gpu_Result, Gpu_Texture, Gpu_Texture_View {
         });
 
         return .SUCCESS, swapchain_textures[current_swapchain_index], swapchain_views[current_swapchain_index];
+    } else if vk_result == .SUBOPTIMAL_KHR || vk_result == .VK_ERROR_OUT_OF_DATE_KHR {
+        if(vk_result == .SUBOPTIMAL_KHR) {
+            // Without the following code, I was seeing occasional swachain acquisition failures (with SUBOPTIMAL_KHR
+            // vk_results) on macos during window resizes which reported messages similar to:
+            //
+            //     Vulkan Validation: vkAcquireNextImageKHR(): Semaphore must not be currently signaled.
+            //     The Vulkan spec states: If semaphore is not VK_NULL_HANDLE, it must be unsignaled (https://vulkan.lunarg.com/doc/view/1.4.350.0/mac/antora/spec/latest/chapters/VK_KHR_surface/wsi.html#VUID-vkAcquireNextImageKHR-semaphore-01286)
+            //     Vulkan Validation: vkAcquireNextImageKHR(): Application has already previously acquired 1 image from swapchain. Only 1 is available to be acquired using a timeout of UINT64_MAX (given the swapchain has 2, and VkSurfaceCapabilitiesKHR::minImageCount is 2).
+            //
+            // workaround provied by https://stackoverflow.com/a/70842563 and https://github.com/KhronosGroup/Vulkan-Docs/issues/1059
+            gpu_cleanup_unsafe_semaphore(queue_handle, acquire_semaphore);
+        }
+
+        // recreate swapchain; this is rquired for VK_ERROR_OUT_OF_DATE_KHR, but optional for SUBOPTIMAL_KHR.
+        // we do it in both cases to simplify.
+        gpu_wait_idle();
+        gpu_destroy_swapchain();
+        gpu_init_swapchain(native_window_handle, native_window_type);
     }
 
     // #todo: this is not actually a success. acquire next image can return out of date and suboptimal which we
