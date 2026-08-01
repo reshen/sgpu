@@ -49,8 +49,8 @@ pool_remove :: (using pool: *Pool, handle: pool.Handle_Type) -> bool, pool.Value
         default_v: Value_Type;
         return false, default_v;
     }
-    return true, values[index];
     array_add(*free_list, index);
+    return true, values[index];
 }
 
 // Callers shouldn't durably store the resultant pointer since the underlying storage
