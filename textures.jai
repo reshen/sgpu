@@ -43,6 +43,7 @@ gpu_create_texture :: (desc: Gpu_Texture_Desc, transfer_queue: Gpu_Queue, option
     #if DEBUG_MARKERS then set_object_debug_name(.IMAGE, cast(u64) image, label);
 
     result, cmd_buff := gpu_start_command_recording(transfer_queue);
+    // TODO if this returns, the live_textures pool has a bad entry that isn't cleaned up
     return_if_error(result, 0);
 
     vk_cmd_buff := get_cmd_buff(cmd_buff);
@@ -178,6 +179,7 @@ gpu_texture_view :: (texture_handle: Gpu_Texture, desc: Gpu_View_Desc = .{}, lab
         return 0;
     }
 
+    // TODO should probably be array_add_if_unique()
     array_add(*texture.views, handle,, cpu_allocator);
 
     if texture.desc.usage & .SAMPLED != 0 {
