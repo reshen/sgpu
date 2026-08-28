@@ -1352,20 +1352,6 @@ vma: VmaAllocator;
 
 supports_descriptor_buffers: bool;
 
-Queue :: struct {
-    vk_queue: VkQueue;
-    vk_family: u32;
-    global_index: u32;
-    index_in_type: u32;
-    type: Gpu_Queue_Type;
-
-    timeline: VkSemaphore;
-    timeline_value: u64;
-
-    // All per-queue access must be syncrhonized
-    mutex: Mutex;
-}
-
 queues := Queue.[
     .{type = .MAIN,     index_in_type = 0},
     .{type = .MAIN,     index_in_type = 1},
@@ -1388,11 +1374,13 @@ queue_families: [NUM_QUEUE_FAMILIES] Queue_Family;
 queue_family_indices: [NUM_QUEUE_FAMILIES] u32;
 num_queue_families: u32;
 
+#scope_export
 get_queue :: (queue_handle: Gpu_Queue) -> *Queue {
     queue_index := queue_handle - 1;
     assert(queue_index < queues.count);
     return *queues[queue_index];
 }
+#scope_module
 
 MAX_MAIN_QUEUES  :: 2;
 MAX_COMPUTE_QUEUES  :: 4;
@@ -1500,6 +1488,20 @@ remember_allocator :: () {
 #import "Atomics";
 
 #scope_export
+Queue :: struct {
+    vk_queue: VkQueue;
+    vk_family: u32;
+    global_index: u32;
+    index_in_type: u32;
+    type: Gpu_Queue_Type;
+
+    timeline: VkSemaphore;
+    timeline_value: u64;
+
+    // All per-queue access must be syncrhonized
+    mutex: Mutex;
+}
+
 Gpu_Log_Severity :: VkDebugUtilsMessageSeverityFlagsEXT;
 
 MAX_BUFFERS  :: 10000;
@@ -1512,6 +1514,11 @@ make_queue_threadsafe :: (queue_handle: Gpu_Queue) #expand {
     q := get_queue(queue_handle);
     `lock(*q.mutex);
     `defer unlock(*q.mutex);
+}
+
+make_queue_threadsafe :: (queue: *Queue) #expand {
+    `lock(*queue.mutex);
+    `defer unlock(*queue.mutex);
 }
 
 // NOTE: The caller owns and therefore must free the returned dynamic array, else it'll leak
