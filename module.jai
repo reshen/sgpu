@@ -878,11 +878,14 @@ create_device :: () -> Gpu_Result {
         device_scores: [..] s32;
 
         physical_device_count: u32;
-        vkEnumeratePhysicalDevices(vk_instance, *physical_device_count, null);
+        result := vkEnumeratePhysicalDevices(vk_instance, *physical_device_count, null);
+        assert_vk_result(result);
 
         array_resize(*device_handles, physical_device_count);
         array_resize(*device_scores, physical_device_count);
-        vkEnumeratePhysicalDevices(vk_instance, *physical_device_count, device_handles.data);
+
+        result = vkEnumeratePhysicalDevices(vk_instance, *physical_device_count, device_handles.data);
+        assert_vk_result(result);
 
         if physical_device_count == 0 {
             return .FATAL_NO_SUITABLE_DEVICE_FOUND;
