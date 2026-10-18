@@ -90,7 +90,7 @@ main :: () {
     gpu_wait_idle();
 }
 
-#import,file "../module.jai"(VALIDATION = true);
+#import,file "../module.jai"()(VALIDATION = true);
 #import "Basic";
 #import "Input";
 

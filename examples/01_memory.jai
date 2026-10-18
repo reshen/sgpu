@@ -75,5 +75,5 @@ main :: () {
     }
 }
 
-#import,file "../module.jai"(VALIDATION = true);
+#import,file "../module.jai"()(VALIDATION = true);
 #import "Basic";

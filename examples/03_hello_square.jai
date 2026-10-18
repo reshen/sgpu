@@ -83,9 +83,9 @@ main :: () {
             gpu_swapchain_resize();
         }
 
-        result=, swapchain_image := gpu_swapchain_acquire();
+        result=, swapchain_image, swapchain_texture_view := gpu_swapchain_acquire();
         assert(result == .SUCCESS);
-        if !swapchain_image {
+        if !swapchain_image || !swapchain_texture_view {
             continue;
         }
 
@@ -95,7 +95,7 @@ main :: () {
             render_desc := Gpu_Render_Pass_Desc.{
                 color_targets = .[
                     .{
-                        view = swapchain_image,
+                        view = swapchain_texture_view,
                         load_op = .CLEAR,
                         store_op = .STORE,
                         clear_color._float = .[0, 0, 0, 1],
@@ -118,7 +118,7 @@ main :: () {
     gpu_wait_idle();
 }
 
-#import,file "../module.jai"(VALIDATION = true);
+#import,file "../module.jai"()(VALIDATION = true);
 #import "Basic";
 #import "Input";
 

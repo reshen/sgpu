@@ -1,4 +1,4 @@
-create_window_metal :: (width: int, height: int, window_name: string, window_x := -1, window_y := -1, parent: Window_Type = null, background_color_rgb := DEFAULT_WINDOW_CREATION_COLOR, wanted_msaa := DEFAULT_MSAA) -> *NSWindow {
+create_window_metal :: (width: int, height: int, window_name: string, window_x := -1, window_y := -1, parent: Window_Type = null, background_color_rgb := DEFAULT_WINDOW_CREATION_COLOR, wanted_msaa := DEFAULT_MSAA) -> *CAMetalLayer {
     if !application_initialized init_mac_app();
 
     // On MacOS, window dimensions are specified in points, not pixels.
@@ -28,20 +28,18 @@ create_window_metal :: (width: int, height: int, window_name: string, window_x :
     NSWindow.setCollectionBehavior(window, NSWindowCollectionBehaviorFullScreenPrimary | NSWindowCollectionBehaviorManaged);
     NSWindow.makeKeyAndOrderFront(window, null);
 
-    {
-        view := objc_init(objc_alloc(NSView));
+    view := objc_init(objc_alloc(NSView));
 
-        NSView.setWantsLayer(view, YES);
-        autorelease(view);
+    NSView.setWantsLayer(view, YES);
+    autorelease(view);
 
-       	metal_layer := objc_init(objc_alloc(CAMetalLayer));
-        autorelease(metal_layer);
+    metal_layer := objc_init(objc_alloc(CAMetalLayer));
+    autorelease(metal_layer);
 
-	    ns_view_set_layer(view, cast(*CALayer) metal_layer);
+    ns_view_set_layer(view, cast(*CALayer) metal_layer);
 
-	    NSWindow.setContentView(window, xx view);
-        NSWindow.makeFirstResponder(window, view);
-    }
+    NSWindow.setContentView(window, xx view);
+    NSWindow.makeFirstResponder(window, view);
 
     // @ToDo: Centering the window makes it more presentable, but is obviously
     // in direct conflict with params window_x and window_y.
@@ -49,7 +47,8 @@ create_window_metal :: (width: int, height: int, window_name: string, window_x :
         NSWindow.center(window);
     }
 
-    return window;
+    // return window;
+    return metal_layer;
 }
 
 #scope_file
