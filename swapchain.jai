@@ -31,6 +31,9 @@ gpu_init_swapchain :: (native_window: u64, window_type: Native_Window_Type, pref
     swapchain_present_mode = select_present_mode(preferred_present_modes);
     swapchain_format = select_format(preferred_formats);
 
+    gpu_frame_timeline = gpu_create_semaphore(0, "gpu_frame_timeline");
+    assert(gpu_frame_timeline != 0);
+
     recreate_swapchain();
 
     semaphore_create_info := VkSemaphoreCreateInfo.{
@@ -51,9 +54,6 @@ gpu_init_swapchain :: (native_window: u64, window_type: Native_Window_Type, pref
     }
 
     gpu_init_timestamps(swapchain_images.count);
-
-    gpu_frame_timeline = gpu_create_semaphore(0, "gpu_frame_timeline");
-    assert(gpu_frame_timeline != 0);
 }
 
 gpu_swapchain_resize :: () {
@@ -333,6 +333,7 @@ recreate_swapchain :: () {
 
     queue_handle := gpu_get_queue(.MAIN, 0);
     make_queue_threadsafe(queue_handle);
+
     create_info := VkSwapchainCreateInfoKHR.{
         surface = vk_surface,
         imageFormat = swapchain_format.format,
